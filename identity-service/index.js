@@ -1,5 +1,9 @@
+require("dotenv").config();
 const express = require('express');
 const app = express();
+
+const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN;
+
 app.use(express.json());
 const PORT = 3001;
 

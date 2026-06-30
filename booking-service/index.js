@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 
 const app = express();
@@ -8,6 +9,7 @@ const PORT = 3004;
 const IDENTITY_URL = "http://localhost:3001";
 const INVENTORY_URL = "http://localhost:3002";
 const PAYMENT_URL = "http://localhost:3003";
+const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN;
 
 const bookings = [];
 let nextBookingId = 1;
@@ -32,7 +34,9 @@ const booking = {
 bookings.push(booking);
 
 try {
-    const userRes = await fetch(`${IDENTITY_URL}/users/${userId}`);
+    const userRes = await fetch(`${IDENTITY_URL}/users/${userId}`, {
+        headers: { "Authorization": `Bearer ${INTERNAL_TOKEN}` }
+    });
     if (userRes.status === 404) {
     booking.status = "canceled";
     return res.status(400).json({ error: "Utilisateur inexistant", booking });
@@ -49,7 +53,7 @@ try {
 try {
     const invRes = await fetch(`${INVENTORY_URL}/reservations`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${INTERNAL_TOKEN}` },
     body: JSON.stringify({ eventId }),
     });
 
@@ -74,7 +78,7 @@ let paymentResult;
 try {
     const payRes = await fetch(`${PAYMENT_URL}/payments`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${INTERNAL_TOKEN}` },
     body: JSON.stringify({ amount }),
     });
 
@@ -96,7 +100,9 @@ if (paymentResult.status === "accepted") {
     try {
     const confirmRes = await fetch(
         `${INVENTORY_URL}/reservations/${booking.reservationId}/confirm`,
-        { method: "POST" }
+        {   method: "POST",
+            headers: { "Authorization": `Bearer ${INTERNAL_TOKEN}` }
+        }
     );
     if (!confirmRes.ok) {
         await releaseSeat(booking.reservationId);
@@ -131,6 +137,7 @@ if (!reservationId) return;
 try {
     await fetch(`${INVENTORY_URL}/reservations/${reservationId}/cancel`, {
     method: "POST",
+    headers: { "Authorization": `Bearer ${INTERNAL_TOKEN}` }
     });
 } catch (err) {
     console.error("Échec de la libération de la place", reservationId, err.message);
