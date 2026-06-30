@@ -5,6 +5,15 @@ const app = express();
 const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN;
 
 app.use(express.json());
+
+app.use((req, res, next) => {
+    const auth = req.headers["authorization"];
+    if (!auth || auth !== `Bearer ${INTERNAL_TOKEN}`) {
+        return res.status(401).json({ error: "Non autorisé" });
+    }
+    next();
+});
+
 const PORT = 3002;
 
 const events = [
@@ -16,7 +25,7 @@ const events = [
 const reservations = [];
 let nextReservationId = 1;
 
-app.length("/events", (req, res) => {
+app.get("/events", (req, res) => {
     return res.status(200).json(events);
 });
 
@@ -37,7 +46,7 @@ app.post("/reservations", (req, res) => {
     const reservation = {
         id: nextReservationId++,
         eventId: event.id,
-        status: "confirmée"
+        status: "pending"
     };
     reservations.push(reservation);
 
@@ -52,8 +61,8 @@ app.post("/reservations/:id/confirm", (req, res) => {
         return res.status(404).json({error: "Réservation introuvable"});
     }
 
-    if (reservation.status === "confirmée") {
-        return res.status(409).json({error: "Impossible de confirmer : status actuel ${reservation.status}"});
+    if (reservation.status !== "pending") {
+        return res.status(409).json({error: `Impossible de confirmer : statut actuel ${reservation.status}`});
     }
 
     reservation.status = "confirmée";
@@ -68,11 +77,11 @@ app.post("/reservations/:id/cancel", (req, res) => {
         return res.status(404).json({error: "Réservation introuvable"});
     }
 
-    if (reservation.status !== "confirmée") {
-        return res.status(409).json({error: "Impossible d'annuler : status actuel ${reservation.status}"});
+    if (reservation.status === "annulée") {
+        return res.status(409).json({error: `Impossible d'annuler : statut actuel ${reservation.status}`});
     }
 
-    const event = events.find((e) => e.id === reservation.eventId);é
+    const event = events.find((e) => e.id === reservation.eventId);
     if (event) {
         event.availableSeats += 1;
     }

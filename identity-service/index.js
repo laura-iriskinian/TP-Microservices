@@ -5,6 +5,15 @@ const app = express();
 const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN;
 
 app.use(express.json());
+
+app.use((req, res, next) => {
+    const auth = req.headers["authorization"];
+    if (!auth || auth !== `Bearer ${INTERNAL_TOKEN}`) {
+        return res.status(401).json({ error: "Non autorisé" });
+    }
+    next();
+});
+
 const PORT = 3001;
 
 const users = [
